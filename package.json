@@ -1,0 +1,20 @@
+{
+  "name": "lanpoker",
+  "version": "1.0.0",
+  "description": "Fullstack solution for a virtual deck and dealer for a LAN-based Texas Hold Em game.",
+  "dependencies": {
+    "concurrently": "^5.0.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "concurrently \"cd client && npm start\" \"cd server && npm start\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "React",
+    "Express",
+    "Poker"
+  ],
+  "author": "j1moreno",
+  "license": "MIT"
+}
