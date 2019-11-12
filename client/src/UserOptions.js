@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 // UI imports
 import { makeStyles } from "@material-ui/core/styles";
@@ -26,11 +26,16 @@ const UserOptions = () => {
 
   var numberOfUsers;
 
+  const [dealerExists, setDealerExists] = useState(false);
+
   useEffect(() => {
     axios
       .get("/session/info")
       .then(res => {
         numberOfUsers = res.data.numberOfUsers;
+        if (res.data.dealerExists) {
+          setDealerExists(true);
+        }
       })
       .then(() => {
         // if no user has no ID, create one
@@ -62,15 +67,17 @@ const UserOptions = () => {
       >
         Join as Player
       </Button>
-      <Button
-        className={classes.button}
-        variant="contained"
-        color="primary"
-        component={Link}
-        to="/table"
-      >
-        Join as Dealer
-      </Button>
+      {!dealerExists && (
+        <Button
+          className={classes.button}
+          variant="contained"
+          color="primary"
+          component={Link}
+          to="/table"
+        >
+          Join as Dealer
+        </Button>
+      )}
     </div>
   );
 };
