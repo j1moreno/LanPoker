@@ -1,0 +1,97 @@
+// import Cookies from "universal-cookie";
+
+var express = require("express");
+var router = express.Router();
+
+class SessionManager {
+  constructor() {
+    this.users = [];
+  }
+
+  sessionActive() {
+    return this.users.length > 0;
+  }
+
+  getUsers() {
+    return this.users;
+  }
+
+  addUser(userData) {
+    var id = userData.id;
+    for (var index = 0; index < this.users.length; index++) {
+      if (this.users[index].id === id) {
+        console.log("user already exists");
+        return;
+      }
+    }
+    // if we got here, user was not found, so add
+    this.users.push(userData);
+  }
+
+  removeUser(userData) {
+    var id = userData.id;
+    for (var index = 0; index < this.users.length; index++) {
+      if (this.users[index].id === id) {
+        this.users.splice(index, 1);
+        return;
+      }
+    }
+    // if we got here, user was not found, so add
+    this.users.push(userData);
+  }
+
+  updateUserData(updateData) {
+    // first figure out id we are looking for
+    var id = updateData.id;
+    for (var index = 0; index < this.users.length; index++) {
+      if (this.users[index].id === id) {
+        console.log("element found at index " + index);
+        // once desired element is found, update its data
+        this.users[index] = { ...this.users[index], ...updateData };
+        break;
+      }
+    }
+  }
+}
+
+var sessionManager = new SessionManager();
+
+/* GET home page. */
+router.get("/", function(req, res, next) {
+  res.send("this is the main session page");
+});
+
+router.get("/info", function(req, res, next) {
+  var sessionInfo = {
+    sessionActive: sessionManager.sessionActive(),
+    numberOfUsers: sessionManager.getUsers().length,
+    // @todo: remove this after development, no need to send user data
+    users: sessionManager.getUsers()
+  };
+  res.send(sessionInfo);
+});
+
+router.get("/reset", function(req, res, next) {
+  sessionManager.users = [];
+  res.sendStatus("OK");
+});
+
+router.post("/adduser", function(req, res, next) {
+  console.log("adduser: got post request! Data: " + req.body);
+  sessionManager.addUser(req.body);
+  res.sendStatus("OK");
+});
+
+router.post("/remove-user", function(req, res, next) {
+  console.log("remove-user: got post request! Data: " + req.body);
+  sessionManager.removeUser(req.body);
+  res.sendStatus("OK");
+});
+
+router.post("/set-user-role", function(req, res, next) {
+  console.log("set-user-role: got post request! Data: " + req.body);
+  sessionManager.updateUserData(req.body);
+  res.sendStatus("OK");
+});
+
+module.exports = router;
