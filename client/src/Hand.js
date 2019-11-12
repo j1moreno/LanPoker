@@ -28,12 +28,19 @@ const Hand = () => {
     }
   ]);
 
+  const [dealerExists, setDealerExists] = useState(false);
+
   const cookies = new Cookies();
   let history = useHistory();
 
   useEffect(() => {
-    axios.get("/deck/draw?num=2").then(res => {
-      setCards(res.data);
+    axios.get("/session/info").then(res => {
+      if (res.data.dealerExists) {
+        setDealerExists(true);
+        axios.get("/deck/draw?num=2").then(res => {
+          setCards(res.data);
+        });
+      }
     });
     // update user role
     var userData = {
@@ -65,10 +72,12 @@ const Hand = () => {
   return (
     <div>
       <Typography variant="h5">This is your hand:</Typography>
-      <div>
-        <Card cardInfo={cards[0]} faceUp={cardsFaceUp} />
-        <Card cardInfo={cards[1]} faceUp={cardsFaceUp} />
-      </div>
+      {dealerExists && (
+        <div>
+          <Card cardInfo={cards[0]} faceUp={cardsFaceUp} />
+          <Card cardInfo={cards[1]} faceUp={cardsFaceUp} />
+        </div>
+      )}
       <Button
         onClick={flipCards}
         className={classes.button}

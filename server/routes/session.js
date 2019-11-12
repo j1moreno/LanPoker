@@ -6,6 +6,7 @@ var router = express.Router();
 class SessionManager {
   constructor() {
     this.users = [];
+    this.dealerExists = false;
   }
 
   sessionActive() {
@@ -32,6 +33,10 @@ class SessionManager {
     var id = userData.id;
     for (var index = 0; index < this.users.length; index++) {
       if (this.users[index].id === id) {
+        if (this.users[index].role === "dealer") {
+          // if dealer is leaving session, update state
+          this.dealerExists = false;
+        }
         this.users.splice(index, 1);
         return;
       }
@@ -46,6 +51,16 @@ class SessionManager {
     for (var index = 0; index < this.users.length; index++) {
       if (this.users[index].id === id) {
         console.log("element found at index " + index);
+        if (updateData.role === "dealer") {
+          // check if role is being set to dealer
+          this.dealerExists = true;
+        } else if (
+          updateData.role === "player" &&
+          this.users[index].role === "dealer"
+        ) {
+          // if dealer is being reassigned to player, update state
+          this.dealerExists = false;
+        }
         // once desired element is found, update its data
         this.users[index] = { ...this.users[index], ...updateData };
         break;
@@ -65,6 +80,7 @@ router.get("/info", function(req, res, next) {
   var sessionInfo = {
     sessionActive: sessionManager.sessionActive(),
     numberOfUsers: sessionManager.getUsers().length,
+    dealerExists: sessionManager.dealerExists,
     // @todo: remove this after development, no need to send user data
     users: sessionManager.getUsers()
   };
