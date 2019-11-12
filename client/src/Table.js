@@ -6,7 +6,8 @@ import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
 import Button from "@material-ui/core/Button";
 // server imports
-import Axios from 'axios'
+import Axios from "axios";
+import Cookies from "universal-cookie";
 
 const useStyles = makeStyles(theme => ({
   paper: {
@@ -27,61 +28,69 @@ const Table = () => {
 
   const [flopCards, setFlopCards] = useState([
     {
-      "rank": "huh",
-      "suit": "HUH"
+      rank: "huh",
+      suit: "HUH"
     },
     {
-      "rank": "huh",
-      "suit": "HUH"
+      rank: "huh",
+      suit: "HUH"
     },
     {
-      "rank": "huh",
-      "suit": "HUH"
+      rank: "huh",
+      suit: "HUH"
     }
-  ])
+  ]);
 
-  const [turnCard, setTurnCard] = useState(
-    {
-      "rank": "huh",
-      "suit": "HUH"
-    })
+  const [turnCard, setTurnCard] = useState({
+    rank: "huh",
+    suit: "HUH"
+  });
 
-  const [riverCard, setRiverCard] = useState(
-    {
-      "rank": "huh",
-      "suit": "HUH"
-    })
+  const [riverCard, setRiverCard] = useState({
+    rank: "huh",
+    suit: "HUH"
+  });
+
+  const cookies = new Cookies();
 
   useEffect(() => {
-    Axios.get('/deck/init').then(res => {
-      console.log(res.data)
-    })
-  }, [])
+    Axios.get("/deck/init").then(res => {
+      console.log(res.data);
+    });
+    // update user role
+    var userData = {
+      id: cookies.get("username"),
+      role: "dealer"
+    };
+    Axios.post("/session/set-user-role", userData).then(res => {
+      console.log(res.data);
+    });
+  }, []);
 
   const dealCards = () => {
     if (!flopFaceUp) {
       // get flop cards from server
-      Axios.get('/deck/draw?num=3').then(res => {
-        setFlopCards(res.data)
-        console.log(flopCards)
-      })
+      Axios.get("/deck/draw?num=3").then(res => {
+        setFlopCards(res.data);
+        console.log(flopCards);
+      });
       setFlopFaceUp(true);
     } else if (!turnFaceUp) {
-      Axios.get('/deck/draw').then(res => {
-        setTurnCard(res.data)
-        console.log(turnCard)
-      })
+      Axios.get("/deck/draw").then(res => {
+        setTurnCard(res.data);
+        console.log(turnCard);
+      });
       setTurnFaceUp(true);
     } else if (!riverFaceUp) {
-      Axios.get('/deck/draw').then(res => {
-        setRiverCard(res.data)
-        console.log(riverCard)
-      })
+      Axios.get("/deck/draw").then(res => {
+        setRiverCard(res.data);
+        console.log(riverCard);
+      });
       setRiverFaceUp(true);
     } else {
-      Axios.get('/deck/init').then(res => {
-        console.log(res.data)
-      })
+      Axios.get("/deck/init").then(res => {
+        console.log(res.data);
+      });
       setFlopFaceUp(false);
       setTurnFaceUp(false);
       setRiverFaceUp(false);

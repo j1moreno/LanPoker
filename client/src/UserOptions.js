@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 // UI imports
 import { makeStyles } from "@material-ui/core/styles";
 import Typography from "@material-ui/core/Typography";
-import Button from "@material-ui/core/Button"
+import Button from "@material-ui/core/Button";
+// network imports
+import Cookies from "universal-cookie";
+import axios from "axios";
 
 const useStyles = makeStyles(theme => ({
   paper: {
@@ -19,6 +22,33 @@ const useStyles = makeStyles(theme => ({
 
 const UserOptions = () => {
   const classes = useStyles();
+  const cookies = new Cookies();
+
+  var numberOfUsers;
+
+  useEffect(() => {
+    axios
+      .get("/session/info")
+      .then(res => {
+        numberOfUsers = res.data.numberOfUsers;
+      })
+      .then(() => {
+        // if no user has no ID, create one
+        if (cookies.get("username") === undefined) {
+          console.log("new user!");
+          cookies.set("username", "testUser" + numberOfUsers);
+        } else {
+          console.log("not a new user");
+        }
+        console.log(cookies.get("username"));
+        var newUserData = {
+          id: cookies.get("username")
+        };
+        axios
+          .post("/session/adduser", newUserData)
+          .then(res => console.log(res.data));
+      });
+  }, []);
 
   return (
     <div className={classes.paper}>
@@ -39,7 +69,7 @@ const UserOptions = () => {
         component={Link}
         to="/table"
       >
-        Join as Table
+        Join as Dealer
       </Button>
     </div>
   );
