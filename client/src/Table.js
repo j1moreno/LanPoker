@@ -111,6 +111,14 @@ const Table = () => {
 
   const classes = useStyles();
 
+  const displayDealButton = () => {
+    if (riverFaceUp) {
+      return "End Round";
+    } else {
+      return "Deal";
+    }
+  };
+
   return (
     <div className={classes.paper}>
       <Typography variant="h5">This is a table:</Typography>
@@ -139,7 +147,7 @@ const Table = () => {
         variant="contained"
         color="primary"
       >
-        Deal
+        {displayDealButton()}
       </Button>
     </div>
   );
