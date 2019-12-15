@@ -1,5 +1,3 @@
-// import Cookies from "universal-cookie";
-
 var express = require("express");
 var router = express.Router();
 

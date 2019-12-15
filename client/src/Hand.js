@@ -8,6 +8,7 @@ import Button from "@material-ui/core/Button";
 // network imports:
 import axios from "axios";
 import Cookies from "universal-cookie";
+import openSocket from "socket.io-client";
 
 const useStyles = makeStyles(theme => ({
   button: {
@@ -16,6 +17,8 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const Hand = () => {
+  const socket = openSocket("/");
+
   const [cardsFaceUp, setCardsFaceUp] = useState(false);
   const [cards, setCards] = useState([
     {
@@ -29,28 +32,53 @@ const Hand = () => {
   ]);
 
   const [dealerExists, setDealerExists] = useState(false);
+  const [cardsDealt, setCardsDealt] = useState(false);
 
   const cookies = new Cookies();
   let history = useHistory();
 
   useEffect(() => {
-    axios.get("/session/info").then(res => {
-      if (res.data.dealerExists) {
-        setDealerExists(true);
-        axios.get("/deck/draw?num=2").then(res => {
-          setCards(res.data);
-        });
-      }
-    });
     // update user role
     var userData = {
       id: cookies.get("username"),
       role: "player"
     };
-    axios.post("/session/set-user-role", userData).then(res => {
-      console.log(res.data);
-    });
+    axios
+      .post("/session/set-user-role", userData)
+      .then(res => {
+        console.log(res.data);
+      })
+      .then(
+        axios.get("/session/info").then(res => {
+          setDealerExists(res.data.dealerExists);
+        })
+      );
   }, []);
+
+  // effect with cleanup for listeners
+  useEffect(() => {
+    socket.on("dealerHasEntered", value => {
+      console.log("dealer has entered!");
+      setDealerExists(value);
+    });
+    socket.on("getCards", value => {
+      console.log("dealer has dealt!");
+      axios.get("/deck/draw?num=2").then(res => {
+        setCards(res.data);
+        setCardsDealt(value);
+      });
+    });
+    socket.on("roundEnded", value => {
+      console.log("round is over");
+      setCardsDealt(false);
+    });
+
+    // cleanup:
+    return () => {
+      socket.off("dealerHasEntered");
+      socket.off("getCards");
+    };
+  });
 
   function flipCards() {
     setCardsFaceUp(!cardsFaceUp);
@@ -69,15 +97,25 @@ const Hand = () => {
 
   const classes = useStyles();
 
-  return (
-    <div>
-      <Typography variant="h5">This is your hand:</Typography>
-      {dealerExists && (
+  const displayContent = () => {
+    if (!dealerExists) {
+      return <div>Waiting for dealer</div>;
+    } else if (!cardsDealt) {
+      return <div>Waiting for cards...</div>;
+    } else {
+      return (
         <div>
           <Card cardInfo={cards[0]} faceUp={cardsFaceUp} />
           <Card cardInfo={cards[1]} faceUp={cardsFaceUp} />
         </div>
-      )}
+      );
+    }
+  };
+
+  return (
+    <div>
+      <Typography variant="h5">This is your hand:</Typography>
+      {displayContent()}
       <Button
         onClick={flipCards}
         className={classes.button}

@@ -8,6 +8,7 @@ import Button from "@material-ui/core/Button";
 // server imports
 import Axios from "axios";
 import Cookies from "universal-cookie";
+import openSocket from "socket.io-client";
 
 const useStyles = makeStyles(theme => ({
   paper: {
@@ -22,6 +23,8 @@ const useStyles = makeStyles(theme => ({
 }));
 
 const Table = () => {
+  const socket = openSocket("/");
+
   const [flopFaceUp, setFlopFaceUp] = useState(false);
   const [turnFaceUp, setTurnFaceUp] = useState(false);
   const [riverFaceUp, setRiverFaceUp] = useState(false);
@@ -51,6 +54,8 @@ const Table = () => {
     suit: "HUH"
   });
 
+  const [playerCardsDealt, setPlayerCardsDealt] = useState(false);
+
   const cookies = new Cookies();
 
   useEffect(() => {
@@ -65,10 +70,15 @@ const Table = () => {
     Axios.post("/session/set-user-role", userData).then(res => {
       console.log(res.data);
     });
+    socket.emit("dealerEnter");
   }, []);
 
   const dealCards = () => {
-    if (!flopFaceUp) {
+    if (!playerCardsDealt) {
+      // if player cards haven't been dealt yet, do that first
+      socket.emit("dealCards");
+      setPlayerCardsDealt(true);
+    } else if (!flopFaceUp) {
       // get flop cards from server
       Axios.get("/deck/draw?num=3").then(res => {
         setFlopCards(res.data);
@@ -94,6 +104,8 @@ const Table = () => {
       setFlopFaceUp(false);
       setTurnFaceUp(false);
       setRiverFaceUp(false);
+      setPlayerCardsDealt(false);
+      socket.emit("endRound");
     }
   };
 
