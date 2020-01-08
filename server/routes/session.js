@@ -5,6 +5,21 @@ class SessionManager {
   constructor() {
     this.users = [];
     this.dealerExists = false;
+    this.currentGame = {
+      dealerCards: []
+    };
+  }
+
+  addDealerCards(cardData) {
+    if (this.currentGame.dealerCards.length === 0) {
+      this.currentGame.dealerCards = cardData;
+    } else {
+      this.currentGame.dealerCards.push(cardData);
+    }
+  }
+
+  clearDealerCards() {
+    this.currentGame.dealerCards = [];
   }
 
   sessionActive() {
@@ -79,6 +94,7 @@ router.get("/info", function(req, res, next) {
     sessionActive: sessionManager.sessionActive(),
     numberOfUsers: sessionManager.getUsers().length,
     dealerExists: sessionManager.dealerExists,
+    currentGame: sessionManager.currentGame,
     // @todo: remove this after development, no need to send user data
     users: sessionManager.getUsers()
   };
@@ -87,12 +103,25 @@ router.get("/info", function(req, res, next) {
 
 router.get("/reset", function(req, res, next) {
   sessionManager.users = [];
+  sessionManager.currentGame = {};
   res.sendStatus("OK");
 });
 
 router.post("/adduser", function(req, res, next) {
   console.log("adduser: got post request! Data: " + req.body);
   sessionManager.addUser(req.body);
+  res.sendStatus("OK");
+});
+
+router.post("/add-dealer-cards", function(req, res, next) {
+  console.log("add-dealer-cards; got post request, data: " + req.body);
+  sessionManager.addDealerCards(req.body);
+  res.sendStatus("OK");
+});
+
+router.get("/clear-dealer-cards", function(req, res, next) {
+  console.log("got request to remove dealer cards");
+  sessionManager.clearDealerCards();
   res.sendStatus("OK");
 });
 
