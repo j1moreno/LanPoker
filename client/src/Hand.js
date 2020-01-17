@@ -33,26 +33,41 @@ const Hand = () => {
 
   const [dealerExists, setDealerExists] = useState(false);
   const [cardsDealt, setCardsDealt] = useState(false);
+  const [isStateRestored, setIsStateRestored] = useState(false);
 
   const cookies = new Cookies();
   let history = useHistory();
 
   useEffect(() => {
-    // update user role
-    var userData = {
-      id: cookies.get("username"),
-      role: "player"
-    };
-    axios
-      .post("/session/set-user-role", userData)
-      .then(res => {
-        console.log(res.data);
-      })
-      .then(
-        axios.get("/session/info").then(res => {
-          setDealerExists(res.data.dealerExists);
-        })
-      );
+    // first check if game is already running
+    const playerId = cookies.get("username");
+    axios.get(`/session/player-info?id=${playerId}`).then(res => {
+      console.log("response from player info: ");
+      console.log(res.data);
+      if (res.data.cards && res.data.cards.length > 0) {
+        setIsStateRestored(true);
+        setDealerExists(true);
+        setCardsDealt(true);
+        // load cards
+        setCards(res.data.cards);
+      } else {
+        // update user role
+        var userData = {
+          id: cookies.get("username"),
+          role: "player"
+        };
+        axios
+          .post("/session/set-user-role", userData)
+          .then(res => {
+            console.log(res.data);
+          })
+          .then(
+            axios.get("/session/info").then(res => {
+              setDealerExists(res.data.dealerExists);
+            })
+          );
+      }
+    });
   }, []);
 
   // effect with cleanup for listeners
@@ -64,13 +79,14 @@ const Hand = () => {
     socket.on("getCards", value => {
       console.log("dealer has dealt!");
       axios.get("/deck/draw?num=2").then(res => {
-        setCards(res.data);
         setCardsDealt(value);
+        setCards(res.data);
       });
     });
     socket.on("roundEnded", value => {
       console.log("round is over");
       setCardsDealt(false);
+      setIsStateRestored(false);
     });
 
     // cleanup:
@@ -79,6 +95,27 @@ const Hand = () => {
       socket.off("getCards");
     };
   });
+
+  // execute everytime cards are updated
+  useEffect(() => {
+    if (!isStateRestored && cardsDealt) {
+      // post cards to session:
+      // build card data
+      const cardData = {
+        cards: cards
+      };
+      // build data to post, including id
+      const id = cookies.get("username");
+      const postData = {
+        id: id,
+        cardData: cardData
+      };
+      // post to session
+      axios.post("/session/add-player-cards", postData).then(res => {
+        console.log("player cards added to session");
+      });
+    }
+  }, [cards]);
 
   function flipCards() {
     setCardsFaceUp(!cardsFaceUp);

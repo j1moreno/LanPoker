@@ -22,6 +22,35 @@ class SessionManager {
     this.currentGame.dealerCards = [];
   }
 
+  getIndexByPlayerId(playerId) {
+    // this should get overwritten once array is iterated over
+    var result = -1;
+    for (var i = 0; i < this.users.length; i++) {
+      if (this.users[i].id === playerId) {
+        result = i;
+        break;
+      }
+    }
+
+    return result;
+  }
+
+  addPlayerCards(cardData, playerId) {
+    const playerIndex = this.getIndexByPlayerId(playerId);
+    // once desired element is found, update its data
+    this.users[playerIndex] = { ...this.users[playerIndex], ...cardData };
+  }
+
+  clearPlayerCards(playerId) {
+    const playerIndex = this.getIndexByPlayerId(playerId);
+    this.users[playerIndex].cards = [];
+  }
+
+  getPlayerInfo(playerId) {
+    const playerIndex = this.getIndexByPlayerId(playerId);
+    return this.users[playerIndex];
+  }
+
   sessionActive() {
     return this.users.length > 0;
   }
@@ -101,6 +130,11 @@ router.get("/info", function(req, res, next) {
   res.send(sessionInfo);
 });
 
+router.get("/player-info", function(req, res, next) {
+  const playerInfo = sessionManager.getPlayerInfo(req.query.id);
+  res.send(playerInfo);
+});
+
 router.get("/reset", function(req, res, next) {
   sessionManager.users = [];
   sessionManager.currentGame = {};
@@ -122,6 +156,18 @@ router.post("/add-dealer-cards", function(req, res, next) {
 router.get("/clear-dealer-cards", function(req, res, next) {
   console.log("got request to remove dealer cards");
   sessionManager.clearDealerCards();
+  res.sendStatus("OK");
+});
+
+router.post("/add-player-cards", function(req, res, next) {
+  console.log("add-dealer-cards; got post request, data: " + req.body);
+  sessionManager.addPlayerCards(req.body.cardData, req.body.id);
+  res.sendStatus("OK");
+});
+
+router.get("/clear-player-cards", function(req, res, next) {
+  console.log("got request to remove dealer cards");
+  sessionManager.clearPlayerCards();
   res.sendStatus("OK");
 });
 
