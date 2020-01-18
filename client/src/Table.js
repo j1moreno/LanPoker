@@ -42,9 +42,23 @@ const Table = () => {
   useEffect(() => {
     // first check if game is already running
     Axios.get("/session/info").then(res => {
+      // check to see if player cards have been dealt
+      console.log(res.data);
+      // find a user that's not the dealer
+      var playerIndex = 0;
+      for (var i = 0; i < res.data.users.length; i++) {
+        if (res.data.users[i].role === "player") {
+          playerIndex = i;
+          break;
+        }
+      }
+      if (res.data.users[playerIndex].cards) {
+        // checking one user is enough
+        console.log("user cards exist!");
+        setPlayerCardsDealt(true);
+      }
       if (res.data.currentGame.dealerCards.length > 0) {
         setIsStateRestored(true);
-        setPlayerCardsDealt(true);
         // load flop cards if they exist
         if (res.data.currentGame.dealerCards.length >= 3) {
           setFlopCards([
