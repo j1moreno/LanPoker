@@ -34,6 +34,7 @@ const Hand = () => {
   const [dealerExists, setDealerExists] = useState(false);
   const [cardsDealt, setCardsDealt] = useState(false);
   const [isStateRestored, setIsStateRestored] = useState(false);
+  const [playerHasFolded, setPlayerHasFolded] = useState(false);
 
   const cookies = new Cookies();
   let history = useHistory();
@@ -87,6 +88,7 @@ const Hand = () => {
       console.log("round is over");
       setCardsDealt(false);
       setIsStateRestored(false);
+      setPlayerHasFolded(false);
     });
 
     // cleanup:
@@ -121,6 +123,16 @@ const Hand = () => {
     setCardsFaceUp(!cardsFaceUp);
   }
 
+  function foldRound() {
+    var userData = {
+      id: cookies.get("username")
+    };
+    axios.post("/session/clear-player-cards", userData).then(res => {
+      console.log(res.data);
+    });
+    setPlayerHasFolded(true);
+  }
+
   function leaveGame() {
     var userData = {
       id: cookies.get("username")
@@ -139,6 +151,8 @@ const Hand = () => {
       return <div>Waiting for dealer</div>;
     } else if (!cardsDealt) {
       return <div>Waiting for cards...</div>;
+    } else if (playerHasFolded) {
+      return <div>Folded, waiting for next round</div>;
     } else {
       return (
         <div>
@@ -160,6 +174,14 @@ const Hand = () => {
         color="primary"
       >
         Flip Cards
+      </Button>
+      <Button
+        onClick={foldRound}
+        className={classes.button}
+        variant="contained"
+        color="primary"
+      >
+        Fold
       </Button>
       <Button
         onClick={leaveGame}

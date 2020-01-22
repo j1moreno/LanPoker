@@ -165,9 +165,9 @@ router.post("/add-player-cards", function(req, res, next) {
   res.sendStatus("OK");
 });
 
-router.get("/clear-player-cards", function(req, res, next) {
+router.post("/clear-player-cards", function(req, res, next) {
   console.log("got request to remove dealer cards");
-  sessionManager.clearPlayerCards();
+  sessionManager.clearPlayerCards(req.body.id);
   res.sendStatus("OK");
 });
 
