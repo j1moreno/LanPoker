@@ -20,16 +20,7 @@ const Hand = () => {
   const socket = openSocket("/");
 
   const [cardsFaceUp, setCardsFaceUp] = useState(false);
-  const [cards, setCards] = useState([
-    {
-      rank: "none",
-      suit: "none"
-    },
-    {
-      rank: "none",
-      suit: "none"
-    }
-  ]);
+  const [cards, setCards] = useState([]);
 
   const [dealerExists, setDealerExists] = useState(false);
   const [cardsDealt, setCardsDealt] = useState(false);
