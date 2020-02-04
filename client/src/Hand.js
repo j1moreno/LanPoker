@@ -9,6 +9,8 @@ import Button from "@material-ui/core/Button";
 import axios from "axios";
 import Cookies from "universal-cookie";
 import openSocket from "socket.io-client";
+// custom
+import PlayerState from "./lib/PlayerState";
 
 const useStyles = makeStyles(theme => ({
   button: {
@@ -19,109 +21,95 @@ const useStyles = makeStyles(theme => ({
 const Hand = () => {
   const socket = openSocket("/");
 
-  const [cardsFaceUp, setCardsFaceUp] = useState(false);
-  const [cards, setCards] = useState([]);
-
-  const [dealerExists, setDealerExists] = useState(false);
-  const [cardsDealt, setCardsDealt] = useState(false);
   const [isStateRestored, setIsStateRestored] = useState(false);
-  const [playerHasFolded, setPlayerHasFolded] = useState(false);
+  // state to hold all relevant player data
+  const [playerState, setPlayerState] = useState(new PlayerState());
 
   const cookies = new Cookies();
   let history = useHistory();
 
   useEffect(() => {
-    // first check if game is already running
+    // get player state, if it exists
     const playerId = cookies.get("username");
     axios.get(`/session/player-info?id=${playerId}`).then(res => {
-      console.log("response from player info: ");
-      console.log(res.data);
-      if (res.data.cards && res.data.cards.length > 0) {
-        setIsStateRestored(true);
-        setDealerExists(true);
-        setCardsDealt(true);
-        // load cards
-        setCards(res.data.cards);
+      setIsStateRestored(true);
+      if (res.data.state) {
+        // if player state exists on server, load it to state
+        setPlayerState(res.data.state);
       } else {
-        // update user role
-        var userData = {
-          id: cookies.get("username"),
-          role: "player"
-        };
-        axios
-          .post("/session/set-user-role", userData)
-          .then(res => {
-            console.log(res.data);
-          })
-          .then(
-            axios.get("/session/info").then(res => {
-              setDealerExists(res.data.dealerExists);
-            })
-          );
+        // check if dealer exists and update state
+        axios.get("/session/info").then(res => {
+          // figure out whether there's a dealer, and set state
+          setPlayerState(playerState => ({
+            ...playerState,
+            dealerExists: res.data.dealerExists
+          }));
+        });
       }
     });
   }, []);
+
+  // effect will execute everytime playerState is updated
+  useEffect(() => {
+    // this flag should only be false on refresh; return here to avoid overwriting server data
+    if (!isStateRestored) return;
+    const updateData = {
+      id: cookies.get("username"),
+      state: playerState
+    };
+    axios.post("/session/update-player-state", updateData);
+  }, [playerState]);
 
   // effect with cleanup for listeners
   useEffect(() => {
     socket.on("dealerHasEntered", value => {
       console.log("dealer has entered!");
-      setDealerExists(value);
+      setPlayerState(playerState => ({
+        ...playerState,
+        dealerExists: value
+      }));
     });
     socket.on("getCards", value => {
       console.log("dealer has dealt!");
       axios.get("/deck/draw?num=2").then(res => {
-        setCardsDealt(value);
-        setCards(res.data);
+        // draw cards and update state
+        setPlayerState(playerState => ({
+          ...playerState,
+          cardsDealt: value,
+          cards: res.data
+        }));
       });
     });
     socket.on("roundEnded", value => {
       console.log("round is over");
-      setCardsDealt(false);
-      setIsStateRestored(false);
-      setPlayerHasFolded(false);
+      setPlayerState(playerState => ({
+        ...playerState,
+        cardsDealt: false,
+        cards: [],
+        cardsFolded: false
+      }));
     });
 
     // cleanup:
     return () => {
       socket.off("dealerHasEntered");
       socket.off("getCards");
+      socket.off("roundEnded");
     };
   });
 
-  // execute everytime cards are updated
-  useEffect(() => {
-    if (!isStateRestored && cardsDealt) {
-      // post cards to session:
-      // build card data
-      const cardData = {
-        cards: cards
-      };
-      // build data to post, including id
-      const id = cookies.get("username");
-      const postData = {
-        id: id,
-        cardData: cardData
-      };
-      // post to session
-      axios.post("/session/add-player-cards", postData).then(res => {
-        console.log("player cards added to session");
-      });
-    }
-  }, [cards]);
-
   function flipCards() {
-    setCardsFaceUp(!cardsFaceUp);
+    setPlayerState(playerState => ({
+      ...playerState,
+      cardsFaceUp: !playerState.cardsFaceUp
+    }));
   }
 
   function foldRound() {
-    var userData = {
-      id: cookies.get("username")
-    };
-    axios.post("/session/clear-player-cards", userData).then(res => {
-      console.log(res.data);
-    });
-    setPlayerHasFolded(true);
+    setPlayerState(playerState => ({
+      ...playerState,
+      cardsFolded: true
+    }));
   }
 
   function leaveGame() {
@@ -129,7 +117,6 @@ const Hand = () => {
       id: cookies.get("username")
     };
     axios.post("/session/remove-user", userData).then(res => {
-      console.log(res.data);
       // redirect to home page
       history.push("/");
     });
@@ -138,17 +125,23 @@ const Hand = () => {
   const classes = useStyles();
 
   const displayContent = () => {
-    if (!dealerExists) {
+    if (!playerState.dealerExists) {
       return <div>Waiting for dealer</div>;
-    } else if (!cardsDealt) {
+    } else if (!playerState.cardsDealt) {
       return <div>Waiting for cards...</div>;
-    } else if (playerHasFolded) {
+    } else if (playerState.cardsFolded) {
       return <div>Folded, waiting for next round</div>;
     } else {
       return (
         <div>
-          <Card cardInfo={cards[0]} faceUp={cardsFaceUp} />
-          <Card cardInfo={cards[1]} faceUp={cardsFaceUp} />
+          <Card
+            cardInfo={playerState.cards[0]}
+            faceUp={playerState.cardsFaceUp}
+          />
+          <Card
+            cardInfo={playerState.cards[1]}
+            faceUp={playerState.cardsFaceUp}
+          />
         </div>
       );
     }

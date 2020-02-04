@@ -87,6 +87,13 @@ class SessionManager {
     this.users.push(userData);
   }
 
+  updatePlayerState(playerId, updateData) {
+    // first figure out index for id
+    const playerIndex = this.getIndexByPlayerId(playerId);
+    // once desired element is found, update its data
+    this.users[playerIndex].state = updateData;
+  }
+
   updateUserData(updateData) {
     // first figure out id we are looking for
     var id = updateData.id;
@@ -162,6 +169,12 @@ router.get("/clear-dealer-cards", function(req, res, next) {
 router.post("/add-player-cards", function(req, res, next) {
   console.log("add-dealer-cards; got post request, data: " + req.body);
   sessionManager.addPlayerCards(req.body.cardData, req.body.id);
+  res.sendStatus("OK");
+});
+
+router.post("/update-player-state", function(req, res, next) {
+  console.log("update-player-state; got post request, data: " + req.body);
+  sessionManager.updatePlayerState(req.body.id, req.body.state);
   res.sendStatus("OK");
 });
 
