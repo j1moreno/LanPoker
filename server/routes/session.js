@@ -90,6 +90,8 @@ class SessionManager {
   updatePlayerState(playerId, updateData) {
     // first figure out index for id
     const playerIndex = this.getIndexByPlayerId(playerId);
+    // if updateData is for dealer, update flag
+    if (updateData.role === "dealer") this.dealerExists = true;
     // once desired element is found, update its data
     this.users[playerIndex].state = updateData;
   }
