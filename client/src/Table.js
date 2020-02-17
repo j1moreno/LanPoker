@@ -13,14 +13,20 @@ import openSocket from "socket.io-client";
 import DealerState from "./lib/DealerState";
 
 const useStyles = makeStyles(theme => ({
-  paper: {
-    marginTop: theme.spacing(8),
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center"
-  },
   button: {
-    margin: theme.spacing(3, 0, 2)
+    marginTop: theme.spacing(2)
+  },
+  dealerComponents: {
+    margin: theme.spacing(2)
+  },
+  statusText: {
+    display: "flex",
+    flexDirection: "column"
+  },
+  cards: {
+    marginTop: theme.spacing(2),
+    display: "flex",
+    flexDirection: "row"
   }
 }));
 
@@ -121,15 +127,14 @@ const Table = () => {
   };
 
   return (
-    <div className={classes.paper}>
-      <Typography variant="h5">This is a table:</Typography>
-      {dealerState.playerCardsDealt && (
-        <Typography varint="h3">Player cards dealt</Typography>
-      )}
-      <div className="Table-cards">
-        {dealerState.cards.map((card, index) => {
-          return <Card key={index} cardInfo={card} faceUp={true} />;
-        })}
+    <div className={classes.dealerComponents}>
+      <div className={classes.statusText}>
+        <Typography variant="h5">Dealer</Typography>
+        <Typography variant="caption">Round: 1</Typography>
+        <Typography variant="caption">Players: 3</Typography>
+        <Typography variant="caption">
+          Player cards dealt: {dealerState.playerCardsDealt ? "Yes" : "No"}
+        </Typography>
       </div>
       <Button
         onClick={dealCards}
@@ -139,6 +144,11 @@ const Table = () => {
       >
         {displayDealButton()}
       </Button>
+      <div className={classes.cards}>
+        {dealerState.cards.map((card, index) => {
+          return <Card key={index} cardInfo={card} faceUp={true} />;
+        })}
+      </div>
     </div>
   );
 };
