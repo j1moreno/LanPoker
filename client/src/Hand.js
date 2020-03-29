@@ -21,6 +21,16 @@ const useStyles = makeStyles(theme => ({
   },
   button: {
     marginRight: 20
+  },
+  bottomCard: {
+    position: "relative",
+    top: 0,
+    left: 0
+  },
+  topCard: {
+    position: "absolute",
+    top: 100,
+    left: 0
   }
 }));
 
@@ -139,15 +149,19 @@ const Hand = () => {
       return <div>Folded, waiting for next round</div>;
     } else {
       return (
-        <div>
-          <Card
-            cardInfo={playerState.cards[0]}
-            faceUp={playerState.cardsFaceUp}
-          />
-          <Card
-            cardInfo={playerState.cards[1]}
-            faceUp={playerState.cardsFaceUp}
-          />
+        <div className={classes.bottomCard}>
+          <div>
+            <Card
+              cardInfo={playerState.cards[0]}
+              faceUp={playerState.cardsFaceUp}
+            />
+          </div>
+          <div className={classes.topCard}>
+            <Card
+              cardInfo={playerState.cards[1]}
+              faceUp={playerState.cardsFaceUp}
+            />
+          </div>
         </div>
       );
     }
