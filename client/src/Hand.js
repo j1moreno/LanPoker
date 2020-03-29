@@ -20,7 +20,8 @@ const useStyles = makeStyles(theme => ({
     margin: theme.spacing(0, 0, 2)
   },
   button: {
-    marginRight: 20
+    marginRight: 8,
+    marginTop: 5
   },
   bottomCard: {
     position: "relative",
