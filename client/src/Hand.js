@@ -13,8 +13,14 @@ import openSocket from "socket.io-client";
 import PlayerState from "./lib/PlayerState";
 
 const useStyles = makeStyles(theme => ({
-  button: {
+  base: {
     margin: theme.spacing(3, 2, 2)
+  },
+  buttonRow: {
+    margin: theme.spacing(0, 0, 2)
+  },
+  button: {
+    marginRight: 20
   }
 }));
 
@@ -148,33 +154,35 @@ const Hand = () => {
   };
 
   return (
-    <div>
+    <div className={classes.base}>
       <Typography variant="h5">This is your hand:</Typography>
+      <div className={classes.buttonRow}>
+        <Button
+          onClick={flipCards}
+          className={classes.button}
+          variant="contained"
+          color="primary"
+        >
+          Flip Cards
+        </Button>
+        <Button
+          onClick={foldRound}
+          className={classes.button}
+          variant="contained"
+          color="primary"
+        >
+          Fold
+        </Button>
+        <Button
+          onClick={leaveGame}
+          className={classes.button}
+          variant="contained"
+          color="primary"
+        >
+          Leave Game
+        </Button>
+      </div>
       {displayContent()}
-      <Button
-        onClick={flipCards}
-        className={classes.button}
-        variant="contained"
-        color="primary"
-      >
-        Flip Cards
-      </Button>
-      <Button
-        onClick={foldRound}
-        className={classes.button}
-        variant="contained"
-        color="primary"
-      >
-        Fold
-      </Button>
-      <Button
-        onClick={leaveGame}
-        className={classes.button}
-        variant="contained"
-        color="primary"
-      >
-        Leave Game
-      </Button>
     </div>
   );
 };
