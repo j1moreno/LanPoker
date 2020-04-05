@@ -6,7 +6,8 @@ class SessionManager {
     this.users = [];
     this.dealerExists = false;
     this.currentGame = {
-      dealerCards: []
+      dealerCards: [],
+      roundNumber: 1
     };
   }
 
@@ -133,6 +134,7 @@ router.get("/info", function(req, res, next) {
     numberOfUsers: sessionManager.getUsers().length,
     dealerExists: sessionManager.dealerExists,
     currentGame: sessionManager.currentGame,
+    roundNumber: sessionManager.roundNumber,
     // @todo: remove this after development, no need to send user data
     users: sessionManager.getUsers()
   };
@@ -196,6 +198,17 @@ router.post("/set-user-role", function(req, res, next) {
   console.log("set-user-role: got post request! Data: " + req.body);
   sessionManager.updateUserData(req.body);
   res.sendStatus("OK");
+});
+
+router.post("/round-increment", function(req, res) {
+  console.log("round increment!");
+  sessionManager.currentGame.roundNumber++;
+  res.sendStatus("OK");
+});
+
+router.get("/round-number", function(req, res) {
+  console.log("get round number");
+  res.send({ roundNumber: sessionManager.currentGame.roundNumber });
 });
 
 module.exports = router;

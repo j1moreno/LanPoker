@@ -35,6 +35,7 @@ const Table = () => {
 
   const [isStateRestored, setIsStateRestored] = useState(false);
   const [dealerState, setDealerState] = useState(new DealerState());
+  const [roundNumber, setRoundNumber] = useState(1);
 
   const cookies = new Cookies();
 
@@ -47,6 +48,9 @@ const Table = () => {
       if (res.data.state) {
         // if state exists on server, load it to state
         setDealerState(res.data.state);
+        axios.get("/session/round-number").then(res => {
+          setRoundNumber(res.data.roundNumber);
+        });
       } else {
         // this a new page load
         // init deck to prepare for play
@@ -113,6 +117,15 @@ const Table = () => {
         cards: []
       }));
       socket.emit("endRound");
+      // increment round number
+      axios
+        .post("/session/round-increment", {})
+        .then(res => {
+          console.log(res.body);
+        })
+        .then(() => {
+          setRoundNumber(roundNumber + 1);
+        });
     }
   };
 
@@ -130,7 +143,7 @@ const Table = () => {
     <div className={classes.dealerComponents}>
       <div className={classes.statusText}>
         <Typography variant="h5">Dealer</Typography>
-        <Typography variant="caption">Round: 1</Typography>
+        <Typography variant="caption">Round: {roundNumber}</Typography>
         <Typography variant="caption">Players: 3</Typography>
         <Typography variant="caption">
           Player cards dealt: {dealerState.playerCardsDealt ? "Yes" : "No"}

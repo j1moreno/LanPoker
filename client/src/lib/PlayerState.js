@@ -5,6 +5,7 @@ export default class PlayerState {
   cardsDealt = false;
   cardsFolded = false;
   cards = [];
+  roundNumber = 1;
 
   constructor() {}
 
@@ -14,5 +15,6 @@ export default class PlayerState {
     this.dealerExists = inputObject.dealerExists;
     this.cardsDealt = inputObject.cardsDealt;
     this.cardsFolded = inputObject.cardsFolded;
+    this.roundNumber = inputObject.roundNumber;
   }
 }

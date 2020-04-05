@@ -59,7 +59,8 @@ const Hand = () => {
           // figure out whether there's a dealer, and set state
           setPlayerState(playerState => ({
             ...playerState,
-            dealerExists: res.data.dealerExists
+            dealerExists: res.data.dealerExists,
+            roundNumber: res.data.currentGame.roundNumber
           }));
         });
       }
@@ -103,7 +104,8 @@ const Hand = () => {
         ...playerState,
         cardsDealt: false,
         cards: [],
-        cardsFolded: false
+        cardsFolded: false,
+        roundNumber: playerState.roundNumber + 1
       }));
     });
 
@@ -170,7 +172,7 @@ const Hand = () => {
 
   return (
     <div className={classes.base}>
-      <Typography variant="h5">This is your hand:</Typography>
+      <Typography variant="h5">Round {playerState.roundNumber}</Typography>
       <div className={classes.buttonRow}>
         <Button
           onClick={flipCards}
