@@ -144,7 +144,6 @@ const Table = () => {
       <div className={classes.statusText}>
         <Typography variant="h5">Dealer</Typography>
         <Typography variant="caption">Round: {roundNumber}</Typography>
-        <Typography variant="caption">Players: 3</Typography>
         <Typography variant="caption">
           Player cards dealt: {dealerState.playerCardsDealt ? "Yes" : "No"}
         </Typography>
