@@ -12,27 +12,27 @@ import openSocket from "socket.io-client";
 // custom
 import DealerState from "./lib/DealerState";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles((theme) => ({
   button: {
-    marginTop: theme.spacing(2)
+    marginTop: theme.spacing(2),
   },
   dealerComponents: {
-    margin: theme.spacing(2)
+    margin: theme.spacing(2),
   },
   statusText: {
     display: "flex",
-    flexDirection: "column"
+    flexDirection: "column",
   },
   cards: {
     marginTop: theme.spacing(2),
     display: "flex",
-    flexDirection: "row"
-  }
+    flexDirection: "row",
+  },
 }));
 
-const Table = () => {
-  const socket = openSocket("/");
+const socket = openSocket("/");
 
+const Table = () => {
   const [isStateRestored, setIsStateRestored] = useState(false);
   const [dealerState, setDealerState] = useState(new DealerState());
   const [roundNumber, setRoundNumber] = useState(1);
@@ -43,12 +43,12 @@ const Table = () => {
   useEffect(() => {
     // get state, if it exists
     const playerId = cookies.get("username");
-    axios.get(`/session/player-info?id=${playerId}`).then(res => {
+    axios.get(`/session/player-info?id=${playerId}`).then((res) => {
       setIsStateRestored(true);
       if (res.data.state) {
         // if state exists on server, load it to state
         setDealerState(res.data.state);
-        axios.get("/session/round-number").then(res => {
+        axios.get("/session/round-number").then((res) => {
           setRoundNumber(res.data.roundNumber);
         });
       } else {
@@ -60,7 +60,7 @@ const Table = () => {
         // upload initial dealer state to server
         const updateData = {
           id: cookies.get("username"),
-          state: dealerState
+          state: dealerState,
         };
         axios.post("/session/update-player-state", updateData);
       }
@@ -73,7 +73,7 @@ const Table = () => {
     if (!isStateRestored) return;
     const updateData = {
       id: cookies.get("username"),
-      state: dealerState
+      state: dealerState,
     };
     axios.post("/session/update-player-state", updateData);
   }, [dealerState]);
@@ -83,27 +83,27 @@ const Table = () => {
       // if player cards haven't been dealt yet, do that first
       socket.emit("dealCards");
       // update state
-      setDealerState(dealerState => ({
+      setDealerState((dealerState) => ({
         ...dealerState,
-        playerCardsDealt: true
+        playerCardsDealt: true,
       }));
     } else if (dealerState.cards.length < 3) {
       // get flop cards from server
-      axios.get("/deck/draw?num=3").then(res => {
+      axios.get("/deck/draw?num=3").then((res) => {
         // update state
-        setDealerState(dealerState => ({
+        setDealerState((dealerState) => ({
           ...dealerState,
-          cards: res.data
+          cards: res.data,
         }));
       });
     } else if (dealerState.cards.length >= 3 && dealerState.cards.length < 5) {
-      axios.get("/deck/draw").then(res => {
+      axios.get("/deck/draw").then((res) => {
         // update state
         var tempCards = dealerState.cards;
         tempCards.push(res.data);
-        setDealerState(dealerState => ({
+        setDealerState((dealerState) => ({
           ...dealerState,
-          cards: tempCards
+          cards: tempCards,
         }));
       });
     } else {
@@ -111,16 +111,16 @@ const Table = () => {
       // re-init the deck for next round
       axios.get("/deck/init");
       axios.get("/session/clear-dealer-cards");
-      setDealerState(dealerState => ({
+      setDealerState((dealerState) => ({
         ...dealerState,
         playerCardsDealt: false,
-        cards: []
+        cards: [],
       }));
       socket.emit("endRound");
       // increment round number
       axios
         .post("/session/round-increment", {})
-        .then(res => {
+        .then((res) => {
           console.log(res.body);
         })
         .then(() => {
