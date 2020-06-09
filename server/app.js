@@ -19,10 +19,11 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use("/", indexRouter);
 app.use("/users", usersRouter);
 app.use("/deck", cardDeckRouter);
 app.use("/session", sessionRouter);
 app.use("/game-state", gameStateRouter);
+
+app.use("/", express.static(path.join(__dirname, "build")));
 
 module.exports = app;
