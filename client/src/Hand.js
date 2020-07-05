@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useHistory } from "react-router-dom";
+import { useHistory, Redirect } from "react-router-dom";
 import Card from "./Card";
 // UI imports:
 import { makeStyles } from "@material-ui/core/styles";
@@ -11,60 +11,80 @@ import Cookies from "universal-cookie";
 import openSocket from "socket.io-client";
 // custom
 import PlayerState from "./lib/PlayerState";
+import { Dialog } from "@material-ui/core";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogTitle from "@material-ui/core/DialogTitle";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles((theme) => ({
   base: {
-    margin: theme.spacing(3, 2, 2)
+    margin: theme.spacing(3, 2, 2),
   },
   buttonRow: {
-    margin: theme.spacing(0, 0, 2)
+    margin: theme.spacing(0, 0, 2),
   },
   button: {
     marginRight: 8,
-    marginTop: 5
+    marginTop: 5,
   },
   bottomCard: {
     position: "relative",
     top: 0,
-    left: 0
+    left: 0,
   },
   topCard: {
     position: "absolute",
     top: 100,
-    left: 0
-  }
+    left: 0,
+  },
 }));
 
 const Hand = () => {
   const socket = openSocket("/");
 
+  const [isRedirectEnabled, setIsRedirectEnabled] = useState(false);
   const [isStateRestored, setIsStateRestored] = useState(false);
   // state to hold all relevant player data
   const [playerState, setPlayerState] = useState(new PlayerState());
+  const [isSessionActive, setIsSessionActive] = useState(true);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [dealerExists, setDealerExists] = useState(false);
 
   const cookies = new Cookies();
   let history = useHistory();
 
   useEffect(() => {
-    // get player state, if it exists
-    const playerId = cookies.get("username");
-    axios.get(`/session/player-info?id=${playerId}`).then(res => {
-      setIsStateRestored(true);
-      if (res.data.state) {
-        // if player state exists on server, load it to state
-        setPlayerState(res.data.state);
-      } else {
-        // check if dealer exists and update state
-        axios.get("/session/info").then(res => {
-          // figure out whether there's a dealer, and set state
-          setPlayerState(playerState => ({
-            ...playerState,
-            dealerExists: res.data.dealerExists,
-            roundNumber: res.data.currentGame.roundNumber
-          }));
-        });
-      }
-    });
+    // first check if there is a game active
+    axios
+      .get("/session/info")
+      .then((res) => {
+        setDealerExists(res.data.dealerExists);
+        setIsSessionActive(res.data.sessionActive);
+        setRoundNumber(res.data.currentGame.roundNumber);
+        if (res.data.sessionActive) {
+          // get player state, if it exists
+          const playerId = cookies.get("username");
+          axios.get(`/session/player-info?id=${playerId}`).then((res) => {
+            console.log("player info on server:");
+            console.log(res.data);
+            if (res.data.state) {
+              // if player state exists on server, load it to state
+              setPlayerState(res.data.state);
+            } else {
+              // player is not in the game yet, add to game
+              const updateData = {
+                id: playerId,
+                state: playerState,
+              };
+              axios.post("/session/update-player-state", updateData);
+            }
+          });
+        }
+      })
+      .then((res) => {
+        setIsStateRestored(true);
+      });
   }, []);
 
   // effect will execute everytime playerState is updated
@@ -73,40 +93,38 @@ const Hand = () => {
     if (!isStateRestored) return;
     const updateData = {
       id: cookies.get("username"),
-      state: playerState
+      state: playerState,
     };
     axios.post("/session/update-player-state", updateData);
   }, [playerState]);
 
   // effect with cleanup for listeners
   useEffect(() => {
-    socket.on("dealerHasEntered", value => {
+    socket.on("dealerHasEntered", (value) => {
       console.log("dealer has entered!");
-      setPlayerState(playerState => ({
-        ...playerState,
-        dealerExists: value
-      }));
+      setDealerExists(true);
     });
-    socket.on("getCards", value => {
+    socket.on("getCards", (value) => {
       console.log("dealer has dealt!");
-      axios.get("/deck/draw?num=2").then(res => {
+      axios.get("/deck/draw?num=2").then((res) => {
         // draw cards and update state
-        setPlayerState(playerState => ({
+        setPlayerState((playerState) => ({
           ...playerState,
           cardsDealt: value,
-          cards: res.data
+          cards: res.data,
         }));
       });
     });
-    socket.on("roundEnded", value => {
+    socket.on("roundEnded", (value) => {
       console.log("round is over");
-      setPlayerState(playerState => ({
+      setPlayerState((playerState) => ({
         ...playerState,
         cardsDealt: false,
         cards: [],
         cardsFolded: false,
-        roundNumber: playerState.roundNumber + 1
+        roundNumber: playerState.roundNumber + 1,
       }));
+      setRoundNumber(roundNumber + 1);
     });
 
     // cleanup:
@@ -118,24 +136,24 @@ const Hand = () => {
   });
 
   function flipCards() {
-    setPlayerState(playerState => ({
+    setPlayerState((playerState) => ({
       ...playerState,
-      cardsFaceUp: !playerState.cardsFaceUp
+      cardsFaceUp: !playerState.cardsFaceUp,
     }));
   }
 
   function foldRound() {
-    setPlayerState(playerState => ({
+    setPlayerState((playerState) => ({
       ...playerState,
-      cardsFolded: true
+      cardsFolded: true,
     }));
   }
 
   function leaveGame() {
     var userData = {
-      id: cookies.get("username")
+      id: cookies.get("username"),
     };
-    axios.post("/session/remove-user", userData).then(res => {
+    axios.post("/session/remove-user", userData).then((res) => {
       // redirect to home page
       history.push("/");
     });
@@ -144,7 +162,7 @@ const Hand = () => {
   const classes = useStyles();
 
   const displayContent = () => {
-    if (!playerState.dealerExists) {
+    if (!dealerExists) {
       return <div>Waiting for dealer</div>;
     } else if (!playerState.cardsDealt) {
       return <div>Waiting for cards...</div>;
@@ -170,9 +188,74 @@ const Hand = () => {
     }
   };
 
+  const getDialogText = () => {
+    let message = `Your role is currently set to "dealer". Would you like to enter the game as player instead?`;
+    if (!isSessionActive) {
+      message = `There is no game started yet. Would you like to start one and enter as player?`;
+    }
+    return message;
+  };
+
+  const getDialogHeader = () => {
+    let message = `Role Mismatch`;
+    if (!isSessionActive) {
+      message = `No Active Game`;
+    }
+    return message;
+  };
+
+  const getRedirectPath = () => {
+    let path = "/table";
+    if (!isSessionActive) {
+      path = "/";
+    }
+    return path;
+  };
+
+  const isDialogOpen = () => {
+    return !isSessionActive || playerState.role !== "player";
+  };
+
   return (
     <div className={classes.base}>
-      <Typography variant="h5">Round {playerState.roundNumber}</Typography>
+      <Dialog
+        open={isDialogOpen()}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{getDialogHeader()}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {getDialogText()}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setIsRedirectEnabled(true);
+            }}
+            color="primary"
+          >
+            No
+          </Button>
+          <Button
+            onClick={() => {
+              setIsStateRestored(true);
+              setIsSessionActive(true);
+              setPlayerState((playerState) => ({
+                ...playerState,
+                role: "player",
+              }));
+            }}
+            color="primary"
+            autoFocus
+          >
+            Yes
+          </Button>
+        </DialogActions>
+      </Dialog>
+      {isRedirectEnabled && <Redirect to={getRedirectPath()} />}
+      <Typography variant="h5">Round {roundNumber}</Typography>
       <div className={classes.buttonRow}>
         <Button
           onClick={flipCards}

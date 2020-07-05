@@ -11,10 +11,18 @@ import Cookies from "universal-cookie";
 import openSocket from "socket.io-client";
 // custom
 import DealerState from "./lib/DealerState";
+import GameState from "./lib/GameState";
+import { Dialog } from "@material-ui/core";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import { Link } from "react-router-dom";
 
 const useStyles = makeStyles((theme) => ({
   button: {
     marginTop: theme.spacing(2),
+    marginRight: theme.spacing(2),
   },
   dealerComponents: {
     margin: theme.spacing(2),
@@ -36,35 +44,55 @@ const Table = () => {
   const [isStateRestored, setIsStateRestored] = useState(false);
   const [dealerState, setDealerState] = useState(new DealerState());
   const [roundNumber, setRoundNumber] = useState(1);
+  const [gameState, setGameState] = useState(new GameState());
 
   const cookies = new Cookies();
 
   // this runs on page load and refresh
   useEffect(() => {
-    // get state, if it exists
-    const playerId = cookies.get("username");
-    axios.get(`/session/player-info?id=${playerId}`).then((res) => {
-      setIsStateRestored(true);
-      if (res.data.state) {
-        // if state exists on server, load it to state
-        setDealerState(res.data.state);
-        axios.get("/session/round-number").then((res) => {
-          setRoundNumber(res.data.roundNumber);
+    // get game info to see where we are
+    axios
+      .get(`/session/info`)
+      .then((res) => {
+        const dealerExists = res.data.dealerExists;
+        setGameState({
+          sessionActive: res.data.sessionActive,
+          dealerExists: res.data.dealerExists,
+          numberOfUsers: res.data.numberOfUsers,
+          roundNumber: res.data.currentGame.roundNumber,
         });
-      } else {
-        // this a new page load
-        // init deck to prepare for play
-        axios.get("/deck/init");
-        // let everyone know dealer has arrived
-        socket.emit("dealerEnter");
-        // upload initial dealer state to server
-        const updateData = {
-          id: cookies.get("username"),
-          state: dealerState,
-        };
-        axios.post("/session/update-player-state", updateData);
-      }
-    });
+        // if a session is active, get player state
+        if (res.data.sessionActive) {
+          const playerId = cookies.get("username");
+          axios.get(`/session/player-info?id=${playerId}`).then((res) => {
+            console.log("player info from server:");
+            console.log(res.data);
+            if (res.data.state) {
+              setDealerState(res.data.state);
+              if (res.data.state.role === "dealer") {
+                // if already coming in as dealer,
+                // let everyone know dealer has arrived
+                socket.emit("dealerEnter");
+              }
+            } else {
+              console.log("you are not in the game yet");
+              if (!dealerExists) {
+                const updateData = {
+                  id: playerId,
+                  state: dealerState,
+                };
+                axios.post("/session/update-player-state", updateData);
+                socket.emit("dealerEnter");
+              } else {
+                alert("there is already a dealer in the game and it's not you");
+              }
+            }
+          });
+        }
+      })
+      .then((res) => {
+        setIsStateRestored(true);
+      });
   }, []);
 
   // effect will execute every time dealerState is updated
@@ -77,6 +105,10 @@ const Table = () => {
     };
     axios.post("/session/update-player-state", updateData);
   }, [dealerState]);
+
+  useEffect(() => {
+    console.log("game state should be updated on server here");
+  }, [gameState]);
 
   const dealCards = () => {
     if (!dealerState.playerCardsDealt) {
@@ -124,7 +156,10 @@ const Table = () => {
           console.log(res.body);
         })
         .then(() => {
-          setRoundNumber(roundNumber + 1);
+          setGameState((gameState) => ({
+            ...gameState,
+            roundNumber: gameState.roundNumber + 1,
+          }));
         });
     }
   };
@@ -139,11 +174,78 @@ const Table = () => {
     }
   };
 
+  const isDialogOpen = () => {
+    return (
+      !gameState.sessionActive ||
+      (dealerState.role && dealerState.role !== "dealer")
+    );
+  };
+
+  const getDialogText = () => {
+    let message = `Your role is currently set to "player". Would you like to enter the game as dealer instead?`;
+    if (!gameState.sessionActive) {
+      message = `There is no game started yet. Would you like to start one and enter as dealer?`;
+    }
+    return message;
+  };
+
+  const getDialogHeader = () => {
+    let message = `Role Mismatch`;
+    if (!gameState.sessionActive) {
+      message = `No Active Game`;
+    }
+    return message;
+  };
+
+  const getRedirectPath = () => {
+    let path = "/hand";
+    if (!gameState.sessionActive) {
+      path = "/";
+    }
+    return path;
+  };
+
   return (
     <div className={classes.dealerComponents}>
+      <Dialog
+        open={isDialogOpen()}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">{getDialogHeader()}</DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            {getDialogText()}
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button component={Link} to={getRedirectPath()} color="primary">
+            No
+          </Button>
+          <Button
+            onClick={() => {
+              setDealerState((dealerState) => ({
+                ...dealerState,
+                role: "dealer",
+              }));
+              setGameState((gameState) => ({
+                ...gameState,
+                sessionActive: true,
+              }));
+              // let everyone know dealer has arrived
+              socket.emit("dealerEnter");
+            }}
+            color="primary"
+          >
+            Yes
+          </Button>
+        </DialogActions>
+      </Dialog>
       <div className={classes.statusText}>
         <Typography variant="h5">Dealer</Typography>
-        <Typography variant="caption">Round: {roundNumber}</Typography>
+        <Typography variant="caption">
+          Round: {gameState.roundNumber}
+        </Typography>
         <Typography variant="caption">
           Player cards dealt: {dealerState.playerCardsDealt ? "Yes" : "No"}
         </Typography>
@@ -155,6 +257,9 @@ const Table = () => {
         color="primary"
       >
         {displayDealButton()}
+      </Button>
+      <Button className={classes.button} variant="contained" color="primary">
+        Leave Game
       </Button>
       <div className={classes.cards}>
         {dealerState.cards.map((card, index) => {

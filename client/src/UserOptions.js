@@ -7,17 +7,19 @@ import Button from "@material-ui/core/Button";
 // network imports
 import Cookies from "universal-cookie";
 import axios from "axios";
+import DealerState from "./lib/DealerState";
+import PlayerState from "./lib/PlayerState";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles((theme) => ({
   paper: {
     marginTop: theme.spacing(8),
     display: "flex",
     flexDirection: "column",
-    alignItems: "center"
+    alignItems: "center",
   },
   button: {
-    margin: theme.spacing(3, 0, 2)
-  }
+    margin: theme.spacing(3, 0, 2),
+  },
 }));
 
 const UserOptions = () => {
@@ -27,11 +29,12 @@ const UserOptions = () => {
   var numberOfUsers;
 
   const [dealerExists, setDealerExists] = useState(false);
+  const [isUserDealer, setIsUserDealer] = useState(false);
 
   useEffect(() => {
     axios
       .get("/session/info")
-      .then(res => {
+      .then((res) => {
         numberOfUsers = res.data.numberOfUsers;
         if (res.data.dealerExists) {
           setDealerExists(true);
@@ -44,16 +47,27 @@ const UserOptions = () => {
           cookies.set("username", "testUser" + numberOfUsers);
         } else {
           console.log("not a new user");
+          // get player info to see if role has been assigned
+          const playerId = cookies.get("username");
+          axios.get(`/session/player-info?id=${playerId}`).then((res) => {
+            if (res.data.state && res.data.state.role === "dealer") {
+              setIsUserDealer(true);
+            }
+          });
         }
         console.log(cookies.get("username"));
         var newUserData = {
-          id: cookies.get("username")
+          id: cookies.get("username"),
         };
         axios
           .post("/session/adduser", newUserData)
-          .then(res => console.log(res.data));
+          .then((res) => console.log(res.data));
       });
   }, []);
+
+  const isDealerOptionVisible = () => {
+    return !dealerExists || isUserDealer;
+  };
 
   return (
     <div className={classes.paper}>
@@ -64,16 +78,33 @@ const UserOptions = () => {
         color="primary"
         component={Link}
         to="/hand"
+        onClick={() => {
+          const updateData = {
+            id: cookies.get("username"),
+            state: new PlayerState(),
+          };
+          axios.post("/session/update-player-state", updateData);
+        }}
       >
         Join as Player
       </Button>
-      {!dealerExists && (
+      {isDealerOptionVisible() && (
         <Button
           className={classes.button}
           variant="contained"
           color="primary"
           component={Link}
           to="/table"
+          onClick={() => {
+            if (!isUserDealer) {
+              // if user is already dealer, don't overwrite data
+              const updateData = {
+                id: cookies.get("username"),
+                state: new DealerState(),
+              };
+              axios.post("/session/update-player-state", updateData);
+            }
+          }}
         >
           Join as Dealer
         </Button>

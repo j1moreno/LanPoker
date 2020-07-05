@@ -1,5 +1,6 @@
 var express = require("express");
 var router = express.Router();
+const axios = require("axios");
 
 class SessionManager {
   constructor() {
@@ -7,7 +8,7 @@ class SessionManager {
     this.dealerExists = false;
     this.currentGame = {
       dealerCards: [],
-      roundNumber: 1
+      roundNumber: 1,
     };
   }
 
@@ -68,6 +69,20 @@ class SessionManager {
         return;
       }
     }
+    // if user is entering as dealer, init the deck
+    if (userData.state && userData.state.role === "dealer") {
+      axios
+        .get(`http://localhost:3001/deck/init`)
+        .then((res) => {
+          console.log("sent init request");
+          console.log(res.data);
+        })
+        .catch((err) => {
+          console.log("Something went wrong!");
+          console.log(err);
+        });
+      this.dealerExists = true;
+    }
     // if we got here, user was not found, so add
     this.users.push(userData);
   }
@@ -91,10 +106,39 @@ class SessionManager {
   updatePlayerState(playerId, updateData) {
     // first figure out index for id
     const playerIndex = this.getIndexByPlayerId(playerId);
-    // if updateData is for dealer, update flag
-    if (updateData.role === "dealer") this.dealerExists = true;
-    // once desired element is found, update its data
-    this.users[playerIndex].state = updateData;
+    // if player doesn't exist in session, add them instead
+    if (playerIndex < 0) {
+      this.addUser({
+        id: playerId,
+        state: updateData,
+      });
+    } else {
+      // if updateData is for dealer, update flag
+      if (updateData.role === "dealer") {
+        axios
+          .get(`http://localhost:3001/deck/init`)
+          .then((res) => {
+            console.log("sent init request");
+            console.log(res.data);
+          })
+          .catch((err) => {
+            console.log("Something went wrong!");
+            console.log(err);
+          });
+        this.dealerExists = true;
+      }
+      if (this.users[playerIndex].state != undefined) {
+        if (
+          this.users[playerIndex].state.role === "dealer" &&
+          updateData.role === "player"
+        ) {
+          console.log("player has switched roles!");
+          this.dealerExists = false;
+        }
+      }
+      // once desired element is found, update its data
+      this.users[playerIndex].state = updateData;
+    }
   }
 
   updateUserData(updateData) {
@@ -119,16 +163,25 @@ class SessionManager {
       }
     }
   }
+
+  getGameState() {
+    return {
+      sessionActive: this.sessionActive(),
+      dealerExists: this.dealerExists,
+      numberOfUsers: this.getUsers().length,
+      roundNumber: this.currentGame.roundNumber,
+    };
+  }
 }
 
 var sessionManager = new SessionManager();
 
 /* GET home page. */
-router.get("/", function(req, res, next) {
+router.get("/", function (req, res, next) {
   res.send("this is the main session page");
 });
 
-router.get("/info", function(req, res, next) {
+router.get("/info", function (req, res, next) {
   var sessionInfo = {
     sessionActive: sessionManager.sessionActive(),
     numberOfUsers: sessionManager.getUsers().length,
@@ -136,77 +189,86 @@ router.get("/info", function(req, res, next) {
     currentGame: sessionManager.currentGame,
     roundNumber: sessionManager.roundNumber,
     // @todo: remove this after development, no need to send user data
-    users: sessionManager.getUsers()
+    users: sessionManager.getUsers(),
   };
   res.send(sessionInfo);
 });
 
-router.get("/player-info", function(req, res, next) {
+router.get("/game-state", function (req, res, next) {
+  const gameState = sessionManager.getGameState();
+  res.send(gameState);
+});
+
+router.get("/player-info", function (req, res, next) {
   const playerInfo = sessionManager.getPlayerInfo(req.query.id);
   res.send(playerInfo);
 });
 
-router.get("/reset", function(req, res, next) {
+router.get("/reset", function (req, res, next) {
   sessionManager.users = [];
-  sessionManager.currentGame = {};
+  sessionManager.currentGame = {
+    dealerCards: [],
+    roundNumber: 1,
+  };
+  sessionManager.dealerExists = false;
   res.sendStatus("OK");
 });
 
-router.post("/adduser", function(req, res, next) {
+router.post("/adduser", function (req, res, next) {
   console.log("adduser: got post request! Data: " + req.body);
   sessionManager.addUser(req.body);
   res.sendStatus("OK");
 });
 
-router.post("/add-dealer-cards", function(req, res, next) {
+router.post("/add-dealer-cards", function (req, res, next) {
   console.log("add-dealer-cards; got post request, data: " + req.body);
   sessionManager.addDealerCards(req.body);
   res.sendStatus("OK");
 });
 
-router.get("/clear-dealer-cards", function(req, res, next) {
+router.get("/clear-dealer-cards", function (req, res, next) {
   console.log("got request to remove dealer cards");
   sessionManager.clearDealerCards();
   res.sendStatus("OK");
 });
 
-router.post("/add-player-cards", function(req, res, next) {
+router.post("/add-player-cards", function (req, res, next) {
   console.log("add-dealer-cards; got post request, data: " + req.body);
   sessionManager.addPlayerCards(req.body.cardData, req.body.id);
   res.sendStatus("OK");
 });
 
-router.post("/update-player-state", function(req, res, next) {
+router.post("/update-player-state", function (req, res, next) {
   console.log("update-player-state; got post request, data: " + req.body);
   sessionManager.updatePlayerState(req.body.id, req.body.state);
   res.sendStatus("OK");
 });
 
-router.post("/clear-player-cards", function(req, res, next) {
+router.post("/clear-player-cards", function (req, res, next) {
   console.log("got request to remove dealer cards");
   sessionManager.clearPlayerCards(req.body.id);
   res.sendStatus("OK");
 });
 
-router.post("/remove-user", function(req, res, next) {
+router.post("/remove-user", function (req, res, next) {
   console.log("remove-user: got post request! Data: " + req.body);
   sessionManager.removeUser(req.body);
   res.sendStatus("OK");
 });
 
-router.post("/set-user-role", function(req, res, next) {
+router.post("/set-user-role", function (req, res, next) {
   console.log("set-user-role: got post request! Data: " + req.body);
   sessionManager.updateUserData(req.body);
   res.sendStatus("OK");
 });
 
-router.post("/round-increment", function(req, res) {
+router.post("/round-increment", function (req, res) {
   console.log("round increment!");
   sessionManager.currentGame.roundNumber++;
   res.sendStatus("OK");
 });
 
-router.get("/round-number", function(req, res) {
+router.get("/round-number", function (req, res) {
   console.log("get round number");
   res.send({ roundNumber: sessionManager.currentGame.roundNumber });
 });
