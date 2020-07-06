@@ -1,7 +1,7 @@
 const DECK_SIZE = 52;
 
 const indexToRank = [
-  "Ace",
+  "ace",
   "2",
   "3",
   "4",
