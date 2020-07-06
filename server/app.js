@@ -24,6 +24,7 @@ app.use("/deck", cardDeckRouter);
 app.use("/session", sessionRouter);
 app.use("/game-state", gameStateRouter);
 
-app.use("/", express.static(path.join(__dirname, "build")));
+app.use(express.static(path.join(__dirname, "build")));
+app.use("*", express.static(path.join(__dirname, "build")));
 
 module.exports = app;
