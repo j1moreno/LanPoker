@@ -8,16 +8,16 @@ import Button from "@material-ui/core/Button";
 import axios from "axios";
 import Cookies from "universal-cookie";
 
-const useStyles = makeStyles(theme => ({
+const useStyles = makeStyles((theme) => ({
   paper: {
     marginTop: theme.spacing(8),
     display: "flex",
     flexDirection: "column",
-    alignItems: "center"
+    alignItems: "center",
   },
   button: {
-    margin: theme.spacing(3, 0, 2)
-  }
+    margin: theme.spacing(3, 0, 2),
+  },
 }));
 
 const WelcomePage = () => {
@@ -29,7 +29,7 @@ const WelcomePage = () => {
 
   // check to see if session exists before loading
   useEffect(() => {
-    axios.get("/session/info").then(res => {
+    axios.get("/session/info").then((res) => {
       setSessionActive(res.data.sessionActive);
     });
     if (cookies.get("username") !== undefined) {
@@ -42,7 +42,7 @@ const WelcomePage = () => {
   return (
     <div className={classes.paper}>
       <Typography component="h1" variant="h5">
-        Welcome to LAN Poker{userName.length > 0 ? `, ${userName}` : ""}
+        Welcome to LAN Poker
       </Typography>
       <Typography variant="body1">
         {sessionActive ? "Game in Session!" : "You're the first one here!"}
