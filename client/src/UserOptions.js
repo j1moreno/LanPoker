@@ -30,6 +30,7 @@ const UserOptions = () => {
 
   const [dealerExists, setDealerExists] = useState(false);
   const [isUserDealer, setIsUserDealer] = useState(false);
+  const [isUserInGame, setIsUserInGame] = useState(false);
 
   useEffect(() => {
     axios
@@ -50,18 +51,14 @@ const UserOptions = () => {
           // get player info to see if role has been assigned
           const playerId = cookies.get("username");
           axios.get(`/session/player-info?id=${playerId}`).then((res) => {
-            if (res.data.state && res.data.state.role === "dealer") {
-              setIsUserDealer(true);
+            if (res.data.state) {
+              setIsUserInGame(true);
+              if (res.data.state.role === "dealer") {
+                setIsUserDealer(true);
+              }
             }
           });
         }
-        console.log(cookies.get("username"));
-        var newUserData = {
-          id: cookies.get("username"),
-        };
-        axios
-          .post("/session/adduser", newUserData)
-          .then((res) => console.log(res.data));
       });
   }, []);
 
@@ -72,22 +69,27 @@ const UserOptions = () => {
   return (
     <div className={classes.paper}>
       <Typography variant="h5">Select your role</Typography>
-      <Button
-        className={classes.button}
-        variant="contained"
-        color="primary"
-        component={Link}
-        to="/hand"
-        onClick={() => {
-          const updateData = {
-            id: cookies.get("username"),
-            state: new PlayerState(),
-          };
-          axios.post("/session/update-player-state", updateData);
-        }}
-      >
-        Join as Player
-      </Button>
+      {!isUserDealer && (
+        <Button
+          className={classes.button}
+          variant="contained"
+          color="primary"
+          component={Link}
+          to="/hand"
+          onClick={() => {
+            if (!isUserInGame) {
+              // if user is already in game, don't overwrite data
+              const updateData = {
+                id: cookies.get("username"),
+                state: new PlayerState(),
+              };
+              axios.post("/session/update-player-state", updateData);
+            }
+          }}
+        >
+          Join as Player
+        </Button>
+      )}
       {isDealerOptionVisible() && (
         <Button
           className={classes.button}
