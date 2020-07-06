@@ -45,6 +45,8 @@ const Table = () => {
   const [dealerState, setDealerState] = useState(new DealerState());
   const [roundNumber, setRoundNumber] = useState(1);
   const [gameState, setGameState] = useState(new GameState());
+  const [isUserInGame, setIsUserInGame] = useState(true);
+  const [isUserDealer, setIsUserDealer] = useState(true);
 
   const cookies = new Cookies();
 
@@ -67,12 +69,15 @@ const Table = () => {
           axios.get(`/session/player-info?id=${playerId}`).then((res) => {
             console.log("player info from server:");
             console.log(res.data);
+            // if user is in the game already, load their state
             if (res.data.state) {
               setDealerState(res.data.state);
               if (res.data.state.role === "dealer") {
                 // if already coming in as dealer,
                 // let everyone know dealer has arrived
                 socket.emit("dealerEnter");
+              } else {
+                setIsUserDealer(false);
               }
             } else {
               console.log("you are not in the game yet");
@@ -84,7 +89,9 @@ const Table = () => {
                 axios.post("/session/update-player-state", updateData);
                 socket.emit("dealerEnter");
               } else {
-                alert("there is already a dealer in the game and it's not you");
+                setIsUserDealer(false);
+                setIsUserInGame(false);
+                // alert("there is already a dealer in the game and it's not you");
               }
             }
           });
@@ -105,10 +112,6 @@ const Table = () => {
     };
     axios.post("/session/update-player-state", updateData);
   }, [dealerState]);
-
-  useEffect(() => {
-    console.log("game state should be updated on server here");
-  }, [gameState]);
 
   const dealCards = () => {
     if (!dealerState.playerCardsDealt) {
@@ -175,34 +178,63 @@ const Table = () => {
   };
 
   const isDialogOpen = () => {
-    return (
-      !gameState.sessionActive ||
-      (dealerState.role && dealerState.role !== "dealer")
-    );
+    return !gameState.sessionActive || !isUserDealer;
   };
 
   const getDialogText = () => {
     let message = `Your role is currently set to "player". Would you like to enter the game as dealer instead?`;
     if (!gameState.sessionActive) {
       message = `There is no game started yet. Would you like to start one and enter as dealer?`;
+    } else if (gameState.dealerExists && !isUserDealer) {
+      message = `There can only be one dealer per game. Would you like to reset the game and start a new session as dealer?`;
     }
     return message;
   };
 
   const getDialogHeader = () => {
-    let message = `Role Mismatch`;
+    let message = `Role Change`;
     if (!gameState.sessionActive) {
       message = `No Active Game`;
+    } else if (gameState.dealerExists && !isUserDealer) {
+      message = `Dealer Already Exists`;
     }
     return message;
   };
 
   const getRedirectPath = () => {
-    let path = "/hand";
-    if (!gameState.sessionActive) {
-      path = "/";
+    let path = "/";
+    if (!gameState.dealerExists && !isUserDealer) {
+      path = "hand";
     }
     return path;
+  };
+
+  const initDealer = () => {
+    setDealerState((dealerState) => ({
+      ...dealerState,
+      role: "dealer",
+    }));
+    setGameState((gameState) => ({
+      ...gameState,
+      sessionActive: true,
+    }));
+    setIsUserInGame(true);
+    setIsUserDealer(true);
+    // let everyone know dealer has arrived
+    socket.emit("dealerEnter");
+  };
+
+  const handleYes = () => {
+    if (!gameState.sessionActive || !gameState.dealerExists) {
+      // case 1: no game active and starting as dealer
+      // case 2: active game, but no dealer yet
+      initDealer();
+    } else {
+      // case 3: dealer already exists
+      axios.get(`/session/reset`).then((res) => {
+        initDealer();
+      });
+    }
   };
 
   return (
@@ -222,21 +254,7 @@ const Table = () => {
           <Button component={Link} to={getRedirectPath()} color="primary">
             No
           </Button>
-          <Button
-            onClick={() => {
-              setDealerState((dealerState) => ({
-                ...dealerState,
-                role: "dealer",
-              }));
-              setGameState((gameState) => ({
-                ...gameState,
-                sessionActive: true,
-              }));
-              // let everyone know dealer has arrived
-              socket.emit("dealerEnter");
-            }}
-            color="primary"
-          >
+          <Button onClick={handleYes} color="primary">
             Yes
           </Button>
         </DialogActions>
