@@ -7,8 +7,11 @@
   },
   "devDependencies": {},
   "scripts": {
-    "start": "concurrently \"cd client && npm start\" \"cd server && npm start\"",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start-dev": "concurrently \"cd client && npm start\" \"cd server && npm run start-dev\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "cd client && npm run build && cd ..",
+    "postbuild": "sh postbuild.sh",
+    "start": "cd server && npm start"
   },
   "keywords": [
     "React",
