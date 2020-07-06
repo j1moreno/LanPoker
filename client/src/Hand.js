@@ -189,7 +189,9 @@ const Hand = () => {
   };
 
   const getDialogText = () => {
-    let message = `Your role is currently set to "dealer". Would you like to enter the game as player instead?`;
+    let message =
+      `Your role is currently set to "dealer". ` +
+      `Would you like to reset the game and start a new session as player?`;
     if (!isSessionActive) {
       message = `There is no game started yet. Would you like to start one and enter as player?`;
     }
@@ -197,7 +199,7 @@ const Hand = () => {
   };
 
   const getDialogHeader = () => {
-    let message = `Role Mismatch`;
+    let message = `Role Change`;
     if (!isSessionActive) {
       message = `No Active Game`;
     }
@@ -214,6 +216,27 @@ const Hand = () => {
 
   const isDialogOpen = () => {
     return !isSessionActive || playerState.role !== "player";
+  };
+
+  const initPlayer = () => {
+    setIsStateRestored(true);
+    setIsSessionActive(true);
+    setPlayerState((playerState) => ({
+      ...playerState,
+      role: "player",
+    }));
+  };
+
+  const handleYes = () => {
+    if (!isSessionActive) {
+      // case 1: no game active and starting as player
+      initPlayer();
+    } else {
+      // case 2: currently dealer; reset session and start a new game
+      axios.get(`/session/reset`).then((res) => {
+        initPlayer();
+      });
+    }
   };
 
   return (
@@ -238,18 +261,7 @@ const Hand = () => {
           >
             No
           </Button>
-          <Button
-            onClick={() => {
-              setIsStateRestored(true);
-              setIsSessionActive(true);
-              setPlayerState((playerState) => ({
-                ...playerState,
-                role: "player",
-              }));
-            }}
-            color="primary"
-            autoFocus
-          >
+          <Button onClick={handleYes} color="primary">
             Yes
           </Button>
         </DialogActions>
