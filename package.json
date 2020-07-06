@@ -11,7 +11,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "cd client && npm run build && cd ..",
     "postbuild": "sh postbuild.sh",
-    "start": "cd server && npm start"
+    "start": "cd server && npm start",
+    "install-deps": "sh installdeps.sh"
   },
   "keywords": [
     "React",

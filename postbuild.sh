@@ -1,4 +1,4 @@
 cd server
-rm -r build
+rm -rf build
 cd ..
 mv client/build server
