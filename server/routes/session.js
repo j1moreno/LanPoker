@@ -113,20 +113,6 @@ class SessionManager {
         state: updateData,
       });
     } else {
-      // if updateData is for dealer, update flag
-      if (updateData.role === "dealer") {
-        axios
-          .get(`http://localhost:3001/deck/init`)
-          .then((res) => {
-            console.log("sent init request");
-            console.log(res.data);
-          })
-          .catch((err) => {
-            console.log("Something went wrong!");
-            console.log(err);
-          });
-        this.dealerExists = true;
-      }
       if (this.users[playerIndex].state != undefined) {
         if (
           this.users[playerIndex].state.role === "dealer" &&
@@ -134,6 +120,22 @@ class SessionManager {
         ) {
           console.log("player has switched roles!");
           this.dealerExists = false;
+        } else if (
+          this.users[playerIndex].state.role === "player" &&
+          updateData.role === "dealer"
+        ) {
+          console.log("SWITCH ROLES: player to dealer");
+          axios
+            .get(`http://localhost:3001/deck/init`)
+            .then((res) => {
+              console.log("sent init request");
+              console.log(res.data);
+            })
+            .catch((err) => {
+              console.log("Something went wrong!");
+              console.log(err);
+            });
+          this.dealerExists = true;
         }
       }
       // once desired element is found, update its data
@@ -239,7 +241,8 @@ router.post("/add-player-cards", function (req, res, next) {
 });
 
 router.post("/update-player-state", function (req, res, next) {
-  console.log("update-player-state; got post request, data: " + req.body);
+  console.log("update-player-state; got post request, data: ");
+  console.log(req.body);
   sessionManager.updatePlayerState(req.body.id, req.body.state);
   res.sendStatus("OK");
 });
