@@ -276,7 +276,16 @@ const Table = () => {
       >
         {displayDealButton()}
       </Button>
-      <Button className={classes.button} variant="contained" color="primary">
+      <Button
+        className={classes.button}
+        variant="contained"
+        color="primary"
+        component={Link}
+        to={"/"}
+        onClick={() => {
+          axios.get(`/session/reset`);
+        }}
+      >
         Leave Game
       </Button>
       <div className={classes.cards}>
