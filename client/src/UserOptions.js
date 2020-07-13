@@ -26,13 +26,12 @@ const UserOptions = () => {
   const classes = useStyles();
   const cookies = new Cookies();
 
-  var numberOfUsers;
-
   const [dealerExists, setDealerExists] = useState(false);
   const [isUserDealer, setIsUserDealer] = useState(false);
   const [isUserInGame, setIsUserInGame] = useState(false);
 
   useEffect(() => {
+    let numberOfUsers;
     axios
       .get("/session/info")
       .then((res) => {

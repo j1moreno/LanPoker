@@ -3,6 +3,4 @@ export default class GameState {
   dealerExists = false;
   numberOfUsers = 0;
   roundNumber = 1;
-
-  constructor() {}
 }

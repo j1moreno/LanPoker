@@ -43,9 +43,7 @@ const socket = openSocket("/");
 const Table = () => {
   const [isStateRestored, setIsStateRestored] = useState(false);
   const [dealerState, setDealerState] = useState(new DealerState());
-  const [roundNumber, setRoundNumber] = useState(1);
   const [gameState, setGameState] = useState(new GameState());
-  const [isUserInGame, setIsUserInGame] = useState(true);
   const [isUserDealer, setIsUserDealer] = useState(true);
 
   const cookies = new Cookies();
@@ -90,8 +88,6 @@ const Table = () => {
                 socket.emit("dealerEnter");
               } else {
                 setIsUserDealer(false);
-                setIsUserInGame(false);
-                // alert("there is already a dealer in the game and it's not you");
               }
             }
           });
@@ -218,7 +214,6 @@ const Table = () => {
       ...gameState,
       sessionActive: true,
     }));
-    setIsUserInGame(true);
     setIsUserDealer(true);
     // let everyone know dealer has arrived
     socket.emit("dealerEnter");

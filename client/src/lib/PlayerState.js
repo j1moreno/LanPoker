@@ -7,8 +7,6 @@ export default class PlayerState {
   cards = [];
   roundNumber = 1;
 
-  constructor() {}
-
   loadState(inputObject) {
     this.cardsFaceUp = inputObject.cardsFaceUp;
     this.cards = inputObject.cards;

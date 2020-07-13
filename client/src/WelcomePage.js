@@ -6,7 +6,6 @@ import Typography from "@material-ui/core/Typography";
 import Button from "@material-ui/core/Button";
 // network imports
 import axios from "axios";
-import Cookies from "universal-cookie";
 
 const useStyles = makeStyles((theme) => ({
   paper: {
@@ -23,18 +22,12 @@ const useStyles = makeStyles((theme) => ({
 const WelcomePage = () => {
   // sessionActive state
   const [sessionActive, setSessionActive] = useState(false);
-  const [userName, setUserName] = useState("");
-
-  const cookies = new Cookies();
 
   // check to see if session exists before loading
   useEffect(() => {
     axios.get("/session/info").then((res) => {
       setSessionActive(res.data.sessionActive);
     });
-    if (cookies.get("username") !== undefined) {
-      setUserName(cookies.get("username"));
-    }
   }, []);
 
   const classes = useStyles();
