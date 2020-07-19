@@ -2,6 +2,8 @@
 
 Fullstack implementation of a virtual deck and dealer for a LAN-based Texas Hold Em game.
 
+Link to demo: https://youtu.be/m66jeSDBZgg
+
 ## Screenshots
 ![Dealer](screenshots/dealer.png)
 |||
